@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link href="{{url_for('.static', filename='css/style.css')}}" rel="stylesheet" id="bootstrap-css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" type="text/css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+        <div class="messaging">
+          <button onclick="start()">Apertar!</button>
+          <button onclick="start_msg()">Scrapping</button>
+          <div class="inbox_msg">
+            <div class="inbox_people">
+              <div class="headind_srch">
+                <div class="recent_heading">
+                  <h4>Recent</h4>
+                </div>
+                <div class="srch_bar">
+                  <div class="stylish-input-group">
+                    <input type="text" class="search-bar"  placeholder="Search" >
+                    <span class="input-group-addon">
+                    <button type="button"> <i class="fa fa-search" aria-hidden="true"></i> </button>
+                    </span> </div>
+                </div>
+              </div>
+              <div class="inbox_chat">
+                
+              </div>
+            </div>
+            <div class="mesgs">
+              <div class="msg_history">
+              </div>
+              <div class="type_msg">
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+    <script>
+      let socket = io()
+      let contatos_renderizados = []
+      var contato_ativo = {contato_atual:''};
+      function start(){
+        socket.emit('start')
+        socket.emit('monta_contatos')
+        
+        // socket.emit('emit_mensagens')
+        console.log('Iniciando o app!')
+      }
+
+      function start_msg(){
+        socket.emit('emit_mensagens')
+      }
+
+      function sleep(milliseconds) {
+        const date = Date.now();
+        let currentDate = null;
+  do {
+    currentDate = Date.now();
+  } while (currentDate - date < milliseconds);
+    } 
+
+      
+      function hora_atual(){
+        var hoje = new Date()
+        var hora = hoje.getHours() + ":" + hoje.getMinutes()
+        return hora
+      }
+  
+
+      function ScrollDown(){
+        document.querySelector('.msg_history').scrollTop += document.querySelector('.mesgs').scrollHeight;
+      }
+  
+
+      function RenderInputText(){
+        $('.type_msg').html('')
+        $('.type_msg').append(`
+        <div class="input_msg_write">
+          <input type="text" class="write_msg" placeholder="Type a message" />
+          <button class="msg_send_btn" type="button" onclick="EscreveMsg()"><i class="fa fa-paper-plane-o" aria-hidden="true"></i></button>
+        </div>
+        `)
+        $('.write_msg').on('keypress', (e)=>{
+          if(e.which === 13){
+            EscreveMsg()
+          }
+        })
+      }
+ 
+
+      function EscreveMsg(){
+        let contato = contato_ativo.contato_atual
+        let mensagem = $('.write_msg').val()
+        let hora_agora = hora_atual()
+        $('.msg_history').append(
+              `
+              <div class="outgoing_msg">
+              <div class="sent_msg">
+                <p>${mensagem}</p>
+                <span class="time_date">${hora_agora}</span></div>
+            </div>
+            `)
+        socket.emit('msg_enviada', {'contato':contato, 'mensagem':mensagem, 'hora_msg':hora_agora})
+        $('.write_msg').val('')
+        $('.write_msg').focus()
+        ScrollDown()
+      }
+
+
+      function AddPropriedade(id){
+        let elemento = $(`div[id*='${id}']`)
+        let texto = elemento.find('p.msg-display')
+        let nome_contato = elemento.find('h5.name').text()
+        contato_ativo.contato_atual = nome_contato
+        if(elemento.hasClass('active_chat')){
+            elemento.siblings('div.chat_list').removeClass('active_chat');
+          }
+          else{
+            elemento.addClass('active_chat')
+            elemento.siblings('div.chat_list').removeClass('active_chat');
+          }
+          $('.msg_history').html('')
+          if(texto.hasClass('new_msg_preview')){
+            texto.removeClass('new_msg_preview')
+          }
+          if(nome_contato != '<empty string>'){
+            socket.emit('contato_historico', {'contato':nome_contato})
+          }
+         RenderInputText()
+         $('.write_msg').focus()
+      }
+
+
+      function UpdateDivContatos(nome, mensagem){
+        if(contatos_renderizados.includes(nome)){
+          console.log('Vim para o if do UPDATE')
+          let tag_nome = $('.chat_list').find(`h5.name:contains(${nome})`)
+          let msg = tag_nome.siblings('p.msg-display')
+          let top_tag = tag_nome.closest('div.chat_list')
+          msg.html(mensagem)
+          if(top_tag.hasClass('active_chat') == false){
+            msg.addClass('new_msg_preview')
+            $('.inbox_chat').prepend(top_tag)
+            console.log('Vim para o if do HASCLASS')
+          }
+          else{
+            console.log('VOU RETORNAR O NOME' + nome)
+            return nome
+          }
+          
+        }
+        else{
+          console.log('Vim para o else do UPDATE')
+          $('.inbox_chat').prepend(
+                `<div class="chat_list" id='${nome}' onclick='AddPropriedade(this.id)'>
+                    <div class="chat_people">
+                      <div class="chat_img"><img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"></div>
+                      <div class="chat_ib">
+                        <h5 class='name'>${nome}</h5>
+                        <p class='msg-display new_msg_preview'>${mensagem}</p>
+                      </div>
+                    </div>
+                  </div>`)
+          contatos_renderizados.push(nome)
+        }
+      }
+
+
+      function MontaDivContatos(iteravel){
+        for(item of iteravel){
+          let nome_contato = item['contato']
+          let mensagem = item['mensagem']
+          if(contatos_renderizados.includes(nome_contato)){
+            console.log('cai no if')
+            UpdateDivContatos(nome_contato, mensagem)
+          }
+          else{
+            console.log('Cai no else')
+            $('.inbox_chat').append(
+                `<div class="chat_list" id='${nome_contato}' onclick='AddPropriedade(this.id)'>
+                    <div class="chat_people">
+                      <div class="chat_img"><img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"></div>
+                      <div class="chat_ib">
+                        <h5 class='name'>${nome_contato}</h5>
+                        <p class='msg-display'>${mensagem}</p>
+                      </div>
+                    </div>
+                  </div>`)
+            contatos_renderizados.push(nome_contato)
+          }
+
+        }
+      }
+
+
+      function MontaHistoricoMensagens(iteravel){
+        for(obj of iteravel){
+          let msg_status = obj['recebida']
+          let mensagem = obj['mensagem']
+          let horario = obj['hora_mensagem']
+          if(msg_status == true){
+            $('.msg_history').append(`
+              <div class="incoming_msg">
+                <div class="incoming_msg_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"> </div>
+                  <div class="received_msg">
+                    <div class="received_withd_msg">
+                      <p>${mensagem}</p>
+                      <span class="time_date">${horario}</span></div>
+                  </div>
+                </div>
+            `
+            )
+          }
+          else if(msg_status == false){
+            $('.msg_history').append(
+              `
+              <div class="outgoing_msg">
+              <div class="sent_msg">
+                <p>${mensagem}</p>
+                <span class="time_date">${horario}</span></div>
+            </div>
+            `
+            )
+          }
+        }
+      }
+
+
+      function MensagemDelivery(iteravel){
+        for(obj of iteravel){
+          let id_mensagem = obj['id']
+          let destino_msg = obj['contato']
+          let mensagem = obj['mensagem']
+          let hora_msg = obj['hora_mensagem']
+          let retorno_contato_ativo = UpdateDivContatos(destino_msg, mensagem)
+          if(retorno_contato_ativo){
+              $('.msg_history').append(`
+              <div class="incoming_msg">
+              <div class="incoming_msg_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"> </div>
+                <div class="received_msg">
+                  <div class="received_withd_msg">
+                    <p>${mensagem}</p>
+                    <span class="time_date">${hora_msg}</span></div>
+                </div>
+              </div>
+              `)
+              ScrollDown()
+              socket.emit('mensagem_update', {'id_msg':id_mensagem})
+          }
+          else{
+            socket.emit('mensagem_update', {'id_msg':id_mensagem})
+          }
+
+        }
+      }
+
+
+      socket.on('python_scrapper', function(data){
+        let dados = data
+        if(dados['dados_contatos']){
+          let contato_dados = dados['dados_contatos']
+          // console.log(contatos_renderizados)
+          MontaDivContatos(contato_dados)
+        }
+        if(dados['historico_mensagem']){
+          let historico_msg = dados['historico_mensagem']
+          MontaHistoricoMensagens(historico_msg)
+          ScrollDown()
+        }
+        if(dados['nova_mensagem']){
+          let nova_msg = dados['nova_mensagem']
+          MensagemDelivery(nova_msg)
+        }
+        // sleep(2000)
+        // socket.emit('start')
+
+      })      
+    </script>
+
+  </body>
+</html>
