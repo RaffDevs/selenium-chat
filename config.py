@@ -12,7 +12,6 @@ class Config(object):
     #Recebe a propriedade do app
     APP = None
     SQLALCHEMY_DATABASE_URI = "caminho_para_conexão_com_banco"
-
 class DevelopmentConfig(Config):
     # Constante que habilita do ambiente de teste no flask.
     TESTING = True
