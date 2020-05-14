@@ -11,7 +11,7 @@ class Config(object):
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
     #Recebe a propriedade do app
     APP = None
-    SQLALCHEMY_DATABASE_URI = "postgresql://raffdevs:yma2578k@localhost/whats_forip"
+    SQLALCHEMY_DATABASE_URI = "caminho_para_conexão_com_banco"
 
 class DevelopmentConfig(Config):
     # Constante que habilita do ambiente de teste no flask.
