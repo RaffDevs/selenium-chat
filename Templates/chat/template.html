@@ -73,15 +73,16 @@
   
 
       function ScrollDown(){
-        document.querySelector('.msg_history').scrollTop += document.querySelector('.mesgs').scrollHeight;
+        let scroll_bar = document.querySelector('.msg_history');
+        scroll_bar.scrollTo(0, scroll_bar.scrollHeight)
       }
-  
+
 
       function RenderInputText(){
         $('.type_msg').html('')
         $('.type_msg').append(`
         <div class="input_msg_write">
-          <input type="text" class="write_msg" placeholder="Type a message" />
+          <textarea cols="40" rows="5" class="write_msg" style="height:50px;" placeholder="Type a message"></textarea>
           <button class="msg_send_btn" type="button" onclick="EscreveMsg()"><i class="fa fa-paper-plane-o" aria-hidden="true"></i></button>
         </div>
         `)

@@ -21,13 +21,14 @@ class Whats:
         self.html = BeautifulSoup
         self.chrome = chrome
 
-    def insert_mensagem_selenium(self, mensagem, nome_contato, hora=False, selenium=True):
+    def insert_mensagem_selenium(self, msg, nome_contato, hora=False, selenium=True):
         #Insere a mensagem do contato no DB
         try:
             conn = psycopg2.connect(database="whats_forip",host="localhost", user="raffdevs", password="yma2578k")
             timestamp = datetime.now().time()
             string_timestamp = str(timestamp)
             tempo = string_timestamp[:string_timestamp.rindex('.')]
+            mensagem = self.escape(msg)
             print(f'{Fore.YELLOW}(insert_mensagem_selenium) -- Vou inserir a mensagem: {mensagem}')
             cursor = conn.cursor()
             if selenium:
@@ -319,3 +320,11 @@ class Whats:
             elemento.click()
         except Exception as erro:
             print(f'{Fore.MAGENTA}Nenhum LEIA MAIS')
+
+    def escape(self, mensagem):
+        if "'" in mensagem:
+            nova_msg = mensagem.replace("'", '"')
+            print(nova_msg)
+            return nova_msg
+        else:
+            return mensagem
