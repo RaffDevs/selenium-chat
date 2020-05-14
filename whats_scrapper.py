@@ -3,6 +3,11 @@ from time import sleep
 from bs4 import BeautifulSoup
 import psycopg2
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
+from colorama import Fore, Back
 
 
 
@@ -16,39 +21,6 @@ class Whats:
         self.html = BeautifulSoup
         self.chrome = chrome
 
-
-    def nome_contato_in_db(self, contato_nome):
-        #Verifica se o contato ja está cadastrado no DB
-        try:
-            conn = psycopg2.connect(database="whats_forip",host="localhost", user="raffdevs", password="yma2578k")
-            cursor = conn.cursor()
-            cursor.execute(f"SELECT nome_contato FROM contatos WHERE nome_contato = '{contato_nome}'")
-            retorno = list(cursor)
-            print('Verificando nome')
-            if len(retorno) > 0:
-                return True
-            else:
-                return False
-            cursor.close()
-            conn.close()
-        except Exception as erro:
-            print(erro)
-
-    def insert_contato(self, contato_nome):
-        #Insere o contato no db
-        try:
-            conn = psycopg2.connect(database="whats_forip",host="localhost", user="raffdevs", password="yma2578k")
-            cursor = conn.cursor()
-            cursor.execute(f"""
-            INSERT INTO contatos (nome_contato, contato_cadastrado)
-            VALUES('{contato_nome}', 'F')
-            """)
-            print('Inserindo nome')
-            conn.commit()
-            conn.close()
-        except Exception as erro:
-            print(erro)
-
     def insert_mensagem_selenium(self, mensagem, nome_contato, hora=False, selenium=True):
         #Insere a mensagem do contato no DB
         try:
@@ -56,7 +28,7 @@ class Whats:
             timestamp = datetime.now().time()
             string_timestamp = str(timestamp)
             tempo = string_timestamp[:string_timestamp.rindex('.')]
-            print(f'Vou inserir a mensagem: {mensagem}')
+            print(f'{Fore.YELLOW}(insert_mensagem_selenium) -- Vou inserir a mensagem: {mensagem}')
             cursor = conn.cursor()
             if selenium:
                 cursor.execute(f"""
@@ -71,39 +43,27 @@ class Whats:
                 """)
                 conn.commit()
             conn.close()
-            print(f'Inseri a mensagem!')
+            print(f'{Fore.GREEN}(insert_mensagem_selenium) -- Mensagem inserida com sucesso!')
         except Exception as erro:
-            print(erro)
-
-    def verifica_msg_depois(self):
-        # Verifica se há novas mensagens depois de ter pegado as primeiras
-        # mensagens ao clicar
-        try:
-            mensagens_depois = chrome.find_elements_by_xpath(self.xnovas_mensagens_depois)
-            if len(mensagens_depois) > 0:
-                return dict(msg = True, mensagens=mensagens_depois)
-            else:
-                return False
-        except Exception as erro:
-            print(erro)
+            print(f'{Fore.RED}(insert_mensagem_selenium) -- {erro}')
 
     def pega_ultima_mensagem(self, nome_contato):
         try:
             conn = psycopg2.connect(database="whats_forip",host="localhost", user="raffdevs", password="yma2578k")
             cursor = conn.cursor()
+            print(f'{Fore.YELLOW}(pega_ultima_mensagem) -- Buscando a ultima mensagem do contato {nome_contato}...')
             cursor.execute(f"""
                 SELECT mensagem FROM mensagens WHERE mensagem_recebida = 'true' AND id_contato = '{nome_contato}' ORDER BY ID DESC LIMIT 1
             """)
             retorno = list(cursor)
             conn.close()
             for msg in retorno:
-                print('A ultima mensagem deste contato é:', msg[0])
+                print(f'{Fore.GREEN}(pega_ultima_mensagem) -- Ultima mensagem de {nome_contato}:{msg[0]}')
                 return msg[0]
         except Exception as erro:
-            print(erro)
+            print(f'{Fore.RED}(pega_ultima_mensagem) -- {erro}')
             
     def main_scrapper(self, nome_contato, ultima_msg):
-        print('ULTIMA:', ultima_msg)
         div_html = self.chrome.find_element_by_xpath('//div[@class="_9tCEa"]').get_attribute('innerHTML')
         soup = self.html(div_html, 'html.parser')
 
@@ -121,10 +81,10 @@ class Whats:
                 div_emoji_pai = emoji.find_parent('div', class_='message-in')
                 div_emoji_pai.decompose()
         except:
-            print('Não mandaram nenhum emoji sozinho!')
+            pass
+        self.leia_mais()
         #-----------------------/ALTERANDO HTML------------------#
 
-        print('Peguei o html')
         #---------------------SCRAPING DAS MENSAGENS-----------#
         # - Seção responsável por caputarar as mensagens no whatsapp
         
@@ -142,49 +102,40 @@ class Whats:
         # return False: Retorna False para ficar ouvindo as mensagens da conversa atual
         # e verificar as novas conversas. 
         # Essa verificação está na index.py
-
+        print(f'{Fore.YELLOW}(main_scrapper) -- Contato: {nome_contato}, ultima_mensagem: {ultima_msg}')
         try: 
             ultimas_msgs = soup.find_all('span', class_='_3FXB1 selectable-text invisible-space copyable-text', string=f'{ultima_msg}')[-1]
             div_pai = ultimas_msgs.find_parent('div', class_='message-in')
             parentes = div_pai.find_next_siblings('div', class_='message-in')
-            print('Peguei os parentes')
             if len(parentes) > 0:
                 for parent in parentes:
+                    self.leia_mais()
                     msg = parent.select_one('span[class*="_3FXB1 selectable-text"]')
                     if msg != None:
                         self.insert_mensagem_selenium(msg.text, nome_contato)
-                        print('Inseri a mensagem', msg.text)
+                        print(f'{Fore.GREEN}(main_scrapper) -- A mensagem[{msg.text}] foi inserida com sucesso!')
                     else:
-                        print('Essa mensagem não é um texto...')
-                        # mensagem_to_selenium = self.pega_mensagem_front(nome_contato)
-                        # self.manda_mensagens_front(mensagem_to_selenium)
-                        return False
+                        print(f'{Fore.MAGENTA}(main_scrapper) -- Não encontrei nenhum texto nessa mensagem...')
             else:
-                print('Vim para o ELSE')
-                return False
+                print(f'{Fore.MAGENTA}(main_scrapper) -- Não haviam novas mensagens...')
 
         except IndexError as erro_indice:
-            print('Um erro de indice:', erro_indice)
-            return False
+            print(f'{Fore.RED}(main_scrapper) -- Um erro de indice:{erro_indice}')
         
         except Exception as erro:
-            print('Excessão')
-            print(erro)
+            print(f'{Fore.RED}(main_scrapper) -- {erro}')
             sleep(3)
 
     def scrapping_auxiliar(self, nome):
-        print(nome)
+        print(f'{Fore.YELLOw}(scrapping_auxiliar) -- Verificando se há algum conteudo restante do : {nome}')
         try:
             ultima_msg = self.pega_ultima_mensagem(nome)
             retorno = self.main_scrapper(nome,ultima_msg)
-            novas_conversas = self.chrome.find_elements_by_xpath(self.xnovas_conversas)
-            mensagens_para_insert = self.pega_mensagem_front(nome)
-            if retorno is False:
-                print('Sem mensagens novas para pegar!')
         except Exception as erro:
-            print('Nada renderizado!')
+            print(f'{Fore.RED}(scrapping_auxiliar) -- Nenhum historico de mensagem rederizado!')
     
     def monta_contatos_div(self):
+        print(f'{Fore.YELLOW}(monta_contatos_div) -- Buscando contatos para javascript ')
         conn = psycopg2.connect(database="whats_forip",host="localhost", user="raffdevs", password="yma2578k")
         cursor = conn.cursor()
         cursor.execute(f"""with sql_mensagens as (
@@ -195,10 +146,11 @@ class Whats:
         dicio_sql = {'dados_contatos':[]}
         for element in lista_query:
             dicio_sql['dados_contatos'].append({'contato':element[0], 'mensagem':element[1]})
-        print(dicio_sql['dados_contatos'])
+        print(f'{Fore.GREEN}(monta_contatos_div) -- {len(dicio_sql['dados_contatos'])} encontrados!')
         return dicio_sql
 
     def pega_mensagens_historico(self, contato):
+        print(f'{Fore.YELLOW}(pega_mensagens_historico) -- Buscando historico de mensagens para javascript...')
         conn = psycopg2.connect(database="whats_forip",host="localhost", user="raffdevs", password="yma2578k")
         cursor = conn.cursor()
         cursor.execute(f"SELECT mensagem_recebida, mensagem, to_char(hora_mensagem, 'HH24:MI') FROM mensagens WHERE id_contato = '{contato}' ORDER BY id;")
@@ -207,30 +159,34 @@ class Whats:
         for dado in mensagens_query:
             dicio_mensagens['historico_mensagem'].append({'recebida':dado[0], 'mensagem':dado[1], 'hora_mensagem':dado[2]})
         conn.close()
+        print(f'{Fore.GREEN}(pega_mensagens_historico) -- Retornando {len(dicio_mensagens['historico_mensagens'])} itens para javascript!')
         return dicio_mensagens
     
     def mensagens_db(self):
-        conn = psycopg2.connect(database="whats_forip",host="localhost", user="raffdevs", password="yma2578k")
-        cursor = conn.cursor()
-        cursor.execute(f"SELECT id, id_contato, mensagem, to_char(hora_mensagem, 'HH24:MI')  FROM mensagens WHERE mensagem_recebida = 'true' AND mensagem_nova = 'true' ORDER BY id ASC")
-        mensagens_query = list(cursor)
-        json_mensagens = {'nova_mensagem':[]}
-        for element in mensagens_query:
-            json_mensagens['nova_mensagem'].append({'id':element[0], 'contato':element[1], 'mensagem':element[2], 'hora_mensagem':element[3]})
-        conn.close()
-        return json_mensagens
+        try:
+            conn = psycopg2.connect(database="whats_forip",host="localhost", user="raffdevs", password="yma2578k")
+            cursor = conn.cursor()
+            cursor.execute(f"SELECT id, id_contato, mensagem, to_char(hora_mensagem, 'HH24:MI')  FROM mensagens WHERE mensagem_recebida = 'true' AND mensagem_nova = 'true' ORDER BY id ASC")
+            mensagens_query = list(cursor)
+            json_mensagens = {'nova_mensagem':[]}
+            for element in mensagens_query:
+                json_mensagens['nova_mensagem'].append({'id':element[0], 'contato':element[1], 'mensagem':element[2], 'hora_mensagem':element[3]})
+                conn.close()
+            return json_mensagens
+        except Exception as erro:
+            print(f'{Fore.RED}(mensagens_db) -- {erro}')       
 
     def update_mensagens(self, id_msg):
         try:
             conn = psycopg2.connect(database="whats_forip",host="localhost", user="raffdevs", password="yma2578k")
             cursor = conn.cursor()
+            print(f'{Fore.YELLOW}(update_mensagens) -- Iniciando update: {id_msg}')
             cursor.execute(f"UPDATE mensagens SET mensagem_nova = 'false' WHERE id = '{id_msg}'")
             conn.commit()
             conn.close()
-            print('Mensagem atualizada com sucesso!')
+            print(f'{Fore.GREEN}(update_mensagens) -- Mensagem atualizada com sucesso!')
         except Exception as erro:
-            print('Erro ao atualizar o status da mensagem')
-            print(erro)
+            print(f'{Fore.RED}(update_mensagens) -- {erro}')
 
     def pega_mensagem_front(self,nome=False):
         try:
@@ -238,46 +194,42 @@ class Whats:
             cursor = conn.cursor()
             lista_mensagens = {'dados':[]}
             if nome != False:
+                print(f'{Fore.YELLOW}(pega_mensagem_front) -- Contexto: Buscando mensagens para o contato {nome}')
                 cursor.execute(f"SELECT id, mensagem FROM mensagens WHERE id_contato = '{nome}' AND mensagem_recebida = 'false' AND mensagem_nova = 'true' ORDER BY id ASC")
                 retorno = list(cursor)
                 if len(retorno) > 0:
-                    print('SELECIONANDO MENSAGENS PARA O SELENIUM')
                     for obj in retorno:
                         lista_mensagens['dados'].append({'id_msg':obj[0], 'mensagem':[1]})
-                    print('AQUI È O SELECT', lista_mensagens)
+                    print(f'{Fore.GREEN}(pega_mensagem_front) -- Retornando {len(lista_mensagens['dados'])} mensagens para o selenium!')
                     return lista_mensagens
                 else:
-                    print('NENHUMA MENSAGEM PARA ENVIAR PARA O SELENIUM')
+                    print(f'{Fore.MAGENTA}(pega_mensagem_front) -- Sem mensagens para selenium...')
                     return 'NOPE'
             else:
+                print(f'{Fore.YELLOW}(pega_mensagem_front) -- Contexto: Buscando todas as mensagens novas...')
                 cursor.execute("SELECT id, id_contato, mensagem FROM mensagens WHERE mensagem_recebida = 'false' AND mensagem_nova = 'true' ORDER BY id ASC ")
                 retorno = list(cursor)
                 if len(retorno) > 0:
-                    print('SELECIONANDO MENSAGENS PARA O SELENIUM')
                     for obj in retorno:
                         lista_mensagens['dados'].append({'id_msg':obj[0], 'contato':obj[1], 'mensagem':obj[2]})
-                    print('AQUI È O SELECT', lista_mensagens)
+                    print(f'{Fore.GREEN}(pega_mensagem_front) -- Retornando {len(lista_mensagens['dados'])} mensagens para o selenium!')
                     return lista_mensagens
-                    print(lista_mensagens['dados'])
-
                 else:
-                    print('NENHUMA MENSAGEM PARA ENVIAR PARA O SELENIUM')
+                    print(f'{Fore.MAGENTA}(pega_mensagem_front) -- Sem mensagens para selenium...')
                     return 'NOPE'
         except Exception as erro:
-            print('Um erro aconteceu quando busquei mensagens para o selinium!')
-            print(erro)
+            print(f'{Fore.RED}(pega_mensagem_front) -- {erro}')
 
     def manda_mensagens_front(self,iteravel):
-        print('ISSO È UM ITERAVEL', iteravel)
         if isinstance(iteravel, str):
-            print('Sem mensagens')
+            pass
         else:
             for obj in iteravel['dados']:
                 if 'contato' in obj:
                     nome_contato = obj['contato']
                     msg = obj['mensagem']
                     id_mensagem = obj['id_msg']
-                    print(obj)
+                    print(f'{Fore.YELLOW}(manda_mensagens_front) -- Contexto: Escrevendo mensagens do contato {nome_contato}')
                     try:
                         sleep(0.5)
                         contato_whats = self.chrome.find_element_by_xpath(f"//span[text()='{nome_contato}']")
@@ -286,8 +238,13 @@ class Whats:
                         input_texto.click()
                         input_texto.send_keys(msg)
                         input_texto.send_keys(Keys.ENTER)
-                        print('ESCREVI A MENSAGEM!')
+                        print(f'{Fore.GREEN}(manda_mensagens_front)')
                         self.update_mensagens(id_mensagem)
+                        sleep(0.5)
+                    except NoSuchElementException as erro:
+                        print('Não encontrei o elemento...')
+                        print('Iniciando a procura do contato...')
+                        self.procura_elemento(nome_contato, msg, id_mensagem)
                     except Exception as erro:
                         print('Um erro aconteceu ao escrever mensagens para o selenium')
                         print(erro)
@@ -325,3 +282,47 @@ class Whats:
             alert.accept()
         except Exception as erro:
             print('Erro no alert')
+
+    def procura_elemento(self, nome, msg, id_msg):
+        y = 200
+        status = 'NOPE'
+        while True:
+            self.chrome.execute_script("document.querySelector('div._1vDUw').scrollTo(0, {});".format(y))
+            sleep(1)
+            try:
+                self.chrome.find_element_by_xpath(f"//span[text()='{nome}']")
+                status = 'OK'
+            except Exception as erro:
+                print('Ainda não encontrei o elemento')
+                print(erro)
+                y = y + 200
+            print(status)
+            if status == 'OK':
+                contato = self.chrome.find_element_by_xpath(f"//span[text()='{nome}']")
+                contato.click()
+                input_texto = self.chrome.find_element_by_xpath("//div[contains(@class, '_3F6QL _2WovP')]//div[contains(@class, '_2S1VP copyable-text selectable-text')]")
+                input_texto.click()
+                input_texto.send_keys(msg)
+                input_texto.send_keys(Keys.ENTER)
+                print('ESCREVI A MENSAGEM!')
+                self.update_mensagens(id_msg)
+                sleep(1)
+                break
+        self.chrome.execute_script("document.querySelector('div._1vDUw').scrollTo(0,1000);")
+
+    def leia_mais(self):
+        try:
+            elemento = self.chrome.find_element_by_xpath("//span[@class='_3BIvq']")
+            elemento.click()
+        except Exception as erro:
+            print('Nenhum LEIA MAIS')
+
+class TColors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
