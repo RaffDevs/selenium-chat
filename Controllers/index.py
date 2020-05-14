@@ -1,4 +1,4 @@
-from whats_scrapper import Whats,TColors
+from whats_scrapper import Whats
 from flask import render_template
 from time import sleep
 from colorama import Fore, Back
@@ -76,7 +76,8 @@ def init_controllers(app, db, socket, chrome):
             msg_emit = whats.mensagens_db()
             if len(msg_emit['nova_mensagem']) > 0:
                 socket.emit('python_scrapper', msg_emit)
-                print(f'{Fore.GREEN}@emit_mensagens -- Foram emitidos {len(msg_emit['nova_mensagem'])} novas mensagens para o javascript!')
+                size = len(msg_emit['nova_mensagem'])
+                print(f'{Fore.GREEN}@emit_mensagens -- Foram emitidos {size} novas mensagens para o javascript!')
                 sleep(1)
             else:
                 print(f'{Fore.RED}@emit_mensagens -- Sem mensagens...')
@@ -84,10 +85,11 @@ def init_controllers(app, db, socket, chrome):
 
     @socket.on('mensagem_update')
     def atualiza_status_msg(dados):
-        print(dados['id_msg'])
+        print(f'{Fore.CYAN}@mensagem_update -- Recebi o evento! Iniciando update das mensagens!')
         msg_update = whats.update_mensagens(dados['id_msg'])
 
     @socket.on('msg_enviada')
     def envia_mensagem(dados):
+        print(f'{Fore.CYAN}@msg_enviada -- Recebi o evento! Iniciando a inserção das mensagens!')
         whats.insert_mensagem_selenium(dados['mensagem'], dados['contato'], dados['hora_msg'], selenium=False)
 

@@ -127,7 +127,7 @@ class Whats:
             sleep(3)
 
     def scrapping_auxiliar(self, nome):
-        print(f'{Fore.YELLOw}(scrapping_auxiliar) -- Verificando se há algum conteudo restante do : {nome}')
+        print(f'{Fore.YELLOW}(scrapping_auxiliar) -- Verificando se há algum conteudo restante do : {nome}')
         try:
             ultima_msg = self.pega_ultima_mensagem(nome)
             retorno = self.main_scrapper(nome,ultima_msg)
@@ -146,7 +146,8 @@ class Whats:
         dicio_sql = {'dados_contatos':[]}
         for element in lista_query:
             dicio_sql['dados_contatos'].append({'contato':element[0], 'mensagem':element[1]})
-        print(f'{Fore.GREEN}(monta_contatos_div) -- {len(dicio_sql['dados_contatos'])} encontrados!')
+        size = len(dicio_sql['dados_contatos'])
+        print(f'{Fore.GREEN}(monta_contatos_div) -- {size} encontrados!')
         return dicio_sql
 
     def pega_mensagens_historico(self, contato):
@@ -159,7 +160,8 @@ class Whats:
         for dado in mensagens_query:
             dicio_mensagens['historico_mensagem'].append({'recebida':dado[0], 'mensagem':dado[1], 'hora_mensagem':dado[2]})
         conn.close()
-        print(f'{Fore.GREEN}(pega_mensagens_historico) -- Retornando {len(dicio_mensagens['historico_mensagens'])} itens para javascript!')
+        size = len(dicio_mensagens['historico_mensagem'])
+        print(f'{Fore.GREEN}(pega_mensagens_historico) -- Retornando {size} itens para javascript!')
         return dicio_mensagens
     
     def mensagens_db(self):
@@ -200,7 +202,8 @@ class Whats:
                 if len(retorno) > 0:
                     for obj in retorno:
                         lista_mensagens['dados'].append({'id_msg':obj[0], 'mensagem':[1]})
-                    print(f'{Fore.GREEN}(pega_mensagem_front) -- Retornando {len(lista_mensagens['dados'])} mensagens para o selenium!')
+                    size = len(lista_mensagens['dados'])
+                    print(f'{Fore.GREEN}(pega_mensagem_front) -- Retornando {size} mensagens para o selenium!')
                     return lista_mensagens
                 else:
                     print(f'{Fore.MAGENTA}(pega_mensagem_front) -- Sem mensagens para selenium...')
@@ -212,7 +215,8 @@ class Whats:
                 if len(retorno) > 0:
                     for obj in retorno:
                         lista_mensagens['dados'].append({'id_msg':obj[0], 'contato':obj[1], 'mensagem':obj[2]})
-                    print(f'{Fore.GREEN}(pega_mensagem_front) -- Retornando {len(lista_mensagens['dados'])} mensagens para o selenium!')
+                    size = len(lista_mensagens['dados'])
+                    print(f'{Fore.GREEN}(pega_mensagem_front) -- Retornando {size} mensagens para o selenium!')
                     return lista_mensagens
                 else:
                     print(f'{Fore.MAGENTA}(pega_mensagem_front) -- Sem mensagens para selenium...')
@@ -238,18 +242,18 @@ class Whats:
                         input_texto.click()
                         input_texto.send_keys(msg)
                         input_texto.send_keys(Keys.ENTER)
-                        print(f'{Fore.GREEN}(manda_mensagens_front)')
+                        print(f'{Fore.GREEN}(manda_mensagens_front) -- Mensagem escrita com sucesso!')
                         self.update_mensagens(id_mensagem)
                         sleep(0.5)
                     except NoSuchElementException as erro:
-                        print('Não encontrei o elemento...')
-                        print('Iniciando a procura do contato...')
+                        print(f'{Fore.RED}(manda_mensagens_front) -- Não encontrei o elemento...')
+                        print(f'{Fore.RED}(manda_mensagens_front) -- Iniciando a procura do contato...')
                         self.procura_elemento(nome_contato, msg, id_mensagem)
                     except Exception as erro:
-                        print('Um erro aconteceu ao escrever mensagens para o selenium')
-                        print(erro)
+                        print(f'{Fore.RED}(manda_mensagens_front) -- {erro}')
                         sleep(1)
                 else:
+                    print(f'{Fore.YELLOW}(manda_mensagens_front) -- Contexto: Escrevendo mensagens novas!')
                     msg = obj['mensagem']
                     id_mensagem = obj['id_msg']
                     print(id_mensagem)
@@ -259,21 +263,20 @@ class Whats:
                         print('Passei do click')
                         input_texto.send_keys(msg)
                         input_texto.send_keys(Keys.ENTER)
-                        print('ESCREVI A MENSAGEM!')
+                        print(f'{Fore.GREEN}(manda_mensagens_front) -- Mensagem escrita com sucesso!')
                         self.update_mensagens(id_mensagem)
                         sleep(0.5)
                     except Exception as erro:
-                        print('Um erro aconteceu ao escrever mensagens para o selenium')
-                        print(erro)
+                        print(f'{Fore.RED}(manda_mensagens_front) -- {erro}')
                         sleep(1)
 
     def pega_contato_atual(self):
         try:
             contato = self.chrome.find_element_by_xpath("//div[@class='_3XrHh']//span[@class='_1wjpf _3NFp9 _3FXB1']").text
-            print(contato)
+            print(f'{Fore.YELLOW}Ultimo contato acessado: {contato}')
             return contato
         except Exception as erro:
-            print('Não encontrei o contato atual!')
+            print(f'{Fore.MAGENTA}Não encontrei o ultimo contato!')
 
     def refresh(self):
         self.chrome.refresh()
@@ -289,14 +292,14 @@ class Whats:
         while True:
             self.chrome.execute_script("document.querySelector('div._1vDUw').scrollTo(0, {});".format(y))
             sleep(1)
+            print(f'{Fore.YELLOW}(procura_elemento) -- Tentando encontrar o elemento....')
             try:
                 self.chrome.find_element_by_xpath(f"//span[text()='{nome}']")
                 status = 'OK'
+                print(f'{Fore.GREEN}(procura_elemento) -- Elemento encontrado!')
             except Exception as erro:
-                print('Ainda não encontrei o elemento')
-                print(erro)
+                print(f'{Fore.MAGENTA}(procura_elemento) -- Ainda não encontrei o elemento')
                 y = y + 200
-            print(status)
             if status == 'OK':
                 contato = self.chrome.find_element_by_xpath(f"//span[text()='{nome}']")
                 contato.click()
@@ -304,7 +307,7 @@ class Whats:
                 input_texto.click()
                 input_texto.send_keys(msg)
                 input_texto.send_keys(Keys.ENTER)
-                print('ESCREVI A MENSAGEM!')
+                print(f'{Fore.GREEN}(procura_elemento) -- Mensagen escrita com sucesso!')
                 self.update_mensagens(id_msg)
                 sleep(1)
                 break
@@ -315,14 +318,4 @@ class Whats:
             elemento = self.chrome.find_element_by_xpath("//span[@class='_3BIvq']")
             elemento.click()
         except Exception as erro:
-            print('Nenhum LEIA MAIS')
-
-class TColors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+            print(f'{Fore.MAGENTA}Nenhum LEIA MAIS')
