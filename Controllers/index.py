@@ -15,9 +15,9 @@ def init_controllers(app, db, socket, chrome):
     def init_scrapper():
         print(f'{Fore.CYAN}@start -- Iniciando Scraping')
         while True:
+            contato_auxiliar = chrome.find_element_by_xpath(f"//span[text()='+55 16 99305-4020']")
+            contato_auxiliar.click()
             novas_conversas = chrome.find_elements_by_xpath(whats.xnovas_conversas)
-            contato_atual = whats.pega_contato_atual()
-            atualiza = False
             # Bloco de código para caso existam novas conversas
             if len(novas_conversas) > 0:
                 print(f'{Fore.CYAN}@start -- INICIANDO ETAPA 1')
@@ -27,16 +27,15 @@ def init_controllers(app, db, socket, chrome):
                     nome_contato_whats = chrome.find_element_by_xpath(whats.xnome_contato).text
                     contato_atual = nome_contato_whats
                     mensagens_texto = chrome.find_elements_by_xpath(whats.xnovas_mensagens)
-                    mensagem_to_selenium = whats.pega_mensagem_front(contato_atual)
+                    mensagem_to_selenium = whats.pega_mensagem_front(nome_contato_whats)
                     if len(mensagens_texto) > 0:
                         for msg in mensagens_texto:
                             whats.leia_mais()
-                            whats.insert_mensagem_selenium(msg.text, contato_atual)
+                            whats.insert_mensagem_selenium(msg.text, nome_contato_whats) 
                     if len(mensagem_to_selenium) > 0:
                         whats.manda_mensagens_front(mensagem_to_selenium)
-                    print(f'{Fore.GREEN}@start -- Contato: {contato_atual}, Status: Todas as mensagens foram capturadas!')
-                    whats.scrapping_auxiliar(contato_atual)
-                atualiza = True
+                    print(f'{Fore.GREEN}@start -- Contato: {nome_contato_whats}, Status: Todas as mensagens foram capturadas!')
+                    whats.scrapping_auxiliar(nome_contato_whats)
                 print(f'{Fore.GREEN}@start -- ETAPA 1 FINALIZADA')
 
             print(f'{Fore.CYAN}@start -- INICIANDO ETAPA 2')
@@ -44,19 +43,8 @@ def init_controllers(app, db, socket, chrome):
             if mensagens_para_insert != 'NOPE':
                 print(f'{Fore.BLUE}@start -- Existem novas mensagens a serem enviadas para seus contatos!')
                 whats.manda_mensagens_front(mensagens_para_insert)
-                whats.scrapping_auxiliar(contato_atual)
-                atualiza = True
                 print(f'{Fore.GREEN}@start -- ETAPA 2 FINALIZADA')
-                
-            print(f'{Fore.CYAN}@start -- TENTANDO INICIAR REFRESH')
-            if atualiza is True:
-                print(f'{Fore.BLUE}@start -- INICIANDO O REFRESH')
-                whats.refresh()
-                print(f'{Fore.GREEN}@start -- REFRESH CONCLUÍDO')
-                sleep(10)
-            print(f'{Fore.BLUE}@start -- Encerrando o ciclo...')
             sleep(1)
-    
     @socket.on('monta_contatos')
     def pega_contatos():
         div_contatos = whats.monta_contatos_div()

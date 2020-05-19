@@ -108,17 +108,22 @@ class Whats:
             ultimas_msgs = soup.find_all('span', class_='_3FXB1 selectable-text invisible-space copyable-text', string=f'{ultima_msg}')[-1]
             div_pai = ultimas_msgs.find_parent('div', class_='message-in')
             parentes = div_pai.find_next_siblings('div', class_='message-in')
+            mensagens_to_selenium = self.pega_mensagem_front(nome_contato)
             if len(parentes) > 0:
                 for parent in parentes:
                     self.leia_mais()
                     msg = parent.select_one('span[class*="_3FXB1 selectable-text"]')
+                    self.manda_mensagens_front(mensagens_to_selenium)
                     if msg != None:
                         self.insert_mensagem_selenium(msg.text, nome_contato)
                         print(f'{Fore.GREEN}(main_scrapper) -- A mensagem[{msg.text}] foi inserida com sucesso!')
+                        
                     else:
                         print(f'{Fore.MAGENTA}(main_scrapper) -- Não encontrei nenhum texto nessa mensagem...')
+                          
             else:
                 print(f'{Fore.MAGENTA}(main_scrapper) -- Não haviam novas mensagens...')
+                self.manda_mensagens_front(mensagens_to_selenium)
 
         except IndexError as erro_indice:
             print(f'{Fore.RED}(main_scrapper) -- Um erro de indice:{erro_indice}')
@@ -202,7 +207,7 @@ class Whats:
                 retorno = list(cursor)
                 if len(retorno) > 0:
                     for obj in retorno:
-                        lista_mensagens['dados'].append({'id_msg':obj[0], 'mensagem':[1]})
+                        lista_mensagens['dados'].append({'id_msg':obj[0], 'mensagem':obj[1]})
                     size = len(lista_mensagens['dados'])
                     print(f'{Fore.GREEN}(pega_mensagem_front) -- Retornando {size} mensagens para o selenium!')
                     return lista_mensagens
@@ -245,7 +250,7 @@ class Whats:
                         input_texto.send_keys(Keys.ENTER)
                         print(f'{Fore.GREEN}(manda_mensagens_front) -- Mensagem escrita com sucesso!')
                         self.update_mensagens(id_mensagem)
-                        sleep(0.5)
+                        self.scrapping_auxiliar(nome_contato)
                     except NoSuchElementException as erro:
                         print(f'{Fore.RED}(manda_mensagens_front) -- Não encontrei o elemento...')
                         print(f'{Fore.RED}(manda_mensagens_front) -- Iniciando a procura do contato...')
@@ -257,7 +262,6 @@ class Whats:
                     print(f'{Fore.YELLOW}(manda_mensagens_front) -- Contexto: Escrevendo mensagens novas!')
                     msg = obj['mensagem']
                     id_mensagem = obj['id_msg']
-                    print(id_mensagem)
                     try:
                         input_texto = self.chrome.find_element_by_xpath("//div[contains(@class, '_3F6QL _2WovP')]//div[contains(@class, '_2S1VP copyable-text selectable-text')]")
                         input_texto.click()
