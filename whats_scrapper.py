@@ -147,7 +147,8 @@ class Whats:
         cursor.execute(f"""with sql_mensagens as (
             SELECT max(id) AS id,id_contato FROM mensagens group by id_contato ORDER BY id DESC
             )
-            SELECT sql_mensagens.id_contato,mensagens.mensagem from sql_mensagens inner join mensagens on (sql_mensagens.id = mensagens.id)""")
+            SELECT sql_mensagens.id_contato,mensagens.mensagem from sql_mensagens inner join mensagens on (sql_mensagens.id = mensagens.id)
+            ORDER BY sql_mensagens.id DESC """)
         lista_query = list(cursor)
         dicio_sql = {'dados_contatos':[]}
         for element in lista_query:
@@ -240,6 +241,7 @@ class Whats:
                     msg = obj['mensagem']
                     id_mensagem = obj['id_msg']
                     print(f'{Fore.YELLOW}(manda_mensagens_front) -- Contexto: Escrevendo mensagens do contato {nome_contato}')
+                    print('ESSES DADOS CHEGARAM A MIM', iteravel[''])
                     try:
                         sleep(0.5)
                         contato_whats = self.chrome.find_element_by_xpath(f"//span[text()='{nome_contato}']")

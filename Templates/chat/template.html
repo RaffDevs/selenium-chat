@@ -6,6 +6,7 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <link href="{{url_for('.static', filename='css/style.css')}}" rel="stylesheet" id="bootstrap-css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" type="text/css" rel="stylesheet">
+    <title>WhatsIP</title>
   </head>
   <body>
     <div class="container">
@@ -41,9 +42,12 @@
     </div>
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
     <script>
+
       let socket = io()
       let contatos_renderizados = []
       var contato_ativo = {contato_atual:''};
+      const autor = pegaAutor();
+
       function start(){
         socket.emit('start')
         socket.emit('monta_contatos')
@@ -52,9 +56,18 @@
         console.log('Iniciando o app!')
       }
 
+
+      function pegaAutor(){
+        let query = window.location.search;
+        const params = new URLSearchParams(query)
+        return params.get('nome')
+      };
+
+
       function start_msg(){
         socket.emit('emit_mensagens')
       }
+
 
       function sleep(milliseconds) {
         const date = Date.now();
@@ -82,11 +95,11 @@
         $('.type_msg').html('')
         $('.type_msg').append(`
         <div class="input_msg_write">
-          <textarea cols="40" rows="5" class="write_msg" style="height:50px;" placeholder="Type a message"></textarea>
+          <textarea maxlenght="20" class="write_msg" style="height:50px;" placeholder="Type a messagessss"></textarea>
           <button class="msg_send_btn" type="button" onclick="EscreveMsg()"><i class="fa fa-paper-plane-o" aria-hidden="true"></i></button>
         </div>
         `)
-        $('.write_msg').on('keypress', (e)=>{
+        $('.write_msg').on('keyup', (e)=>{
           if(e.which === 13){
             EscreveMsg()
           }
@@ -96,7 +109,9 @@
 
       function EscreveMsg(){
         let contato = contato_ativo.contato_atual
-        let mensagem = $('.write_msg').val()
+        let texto = $('.write_msg').val();
+        let autorMsg = autor;
+        let mensagem = `${autorMsg}: ${texto}`;
         let hora_agora = hora_atual()
         $('.msg_history').append(
               `
@@ -106,10 +121,11 @@
                 <span class="time_date">${hora_agora}</span></div>
             </div>
             `)
+        console.log('DEBUG', mensagem)
         socket.emit('msg_enviada', {'contato':contato, 'mensagem':mensagem, 'hora_msg':hora_agora})
-        $('.write_msg').val('')
         $('.write_msg').focus()
-        ScrollDown()
+        $('.write_msg').val('')
+        
       }
 
 
@@ -260,7 +276,7 @@
         }
       }
 
-
+      
       socket.on('python_scrapper', function(data){
         let dados = data
         if(dados['dados_contatos']){
@@ -280,7 +296,8 @@
         // sleep(2000)
         // socket.emit('start')
 
-      })      
+      })
+
     </script>
 
   </body>
