@@ -13,11 +13,10 @@ from colorama import Fore, Back
 
 class Whats:        
     def __init__(self, chrome):
-        self.xnome_contato = "//div[@class='_3XrHh']//span"
-        self.xteste = "//div[@class='_1mq8g']/div[contains(@class, 'vW7d1 message-out')]"
-        self.xnovas_mensagens = "//div[contains(@class,'_1mq8g')]/following-sibling::div[contains(@class, 'message-in')]//span[@class='_3FXB1 selectable-text invisible-space copyable-text']"
+        self.xnome_contato = "//div[@id='main']//span[contains(@class,'_3ko75 _5h6Y_ _3Whw5')]"
+        self.xnovas_mensagens = "//div[contains(@class,'_9WQEN focusable-list-item')]/following-sibling::div[contains(@class, 'message-in')]//span[@class='_3Whw5 selectable-text invisible-space copyable-text']"
         self.xnovas_mensagens_depois = "//div[contains(@class,'_1mq8g')]/following-sibling::div[contains(@class, 'message-out')][last()]/following-sibling::span[@class='_3FXB1 selectable-text invisible-space copyable-text']"
-        self.xnovas_conversas = "//div[@class='_2EXPL CxUIE']"
+        self.xnovas_conversas = "//div[@class='eJ0yJ _8Uqu5']"
         self.html = BeautifulSoup
         self.chrome = chrome
 
@@ -65,7 +64,7 @@ class Whats:
             print(f'{Fore.RED}(pega_ultima_mensagem) -- {erro}')
             
     def main_scrapper(self, nome_contato, ultima_msg):
-        div_html = self.chrome.find_element_by_xpath('//div[@class="_9tCEa"]').get_attribute('innerHTML')
+        div_html = self.chrome.find_element_by_xpath('//div[@class="_2-aNW"]').get_attribute('innerHTML')
         soup = self.html(div_html, 'html.parser')
 
         #----------------------ALTERANDO O HTML---------------------#
@@ -105,14 +104,14 @@ class Whats:
         # Essa verificação está na index.py
         print(f'{Fore.YELLOW}(main_scrapper) -- Contato: {nome_contato}, ultima_mensagem: {ultima_msg}')
         try: 
-            ultimas_msgs = soup.find_all('span', class_='_3FXB1 selectable-text invisible-space copyable-text', string=f'{ultima_msg}')[-1]
+            ultimas_msgs = soup.find_all('span', class_='selectable-text invisible-space copyable-text', string=f'{ultima_msg}')[-1]
             div_pai = ultimas_msgs.find_parent('div', class_='message-in')
             parentes = div_pai.find_next_siblings('div', class_='message-in')
             mensagens_to_selenium = self.pega_mensagem_front(nome_contato)
             if len(parentes) > 0:
                 for parent in parentes:
                     self.leia_mais()
-                    msg = parent.select_one('span[class*="_3FXB1 selectable-text"]')
+                    msg = parent.select_one('span[class*="selectable-text invisible-space copyable-text"]')
                     self.manda_mensagens_front(mensagens_to_selenium)
                     if msg != None:
                         self.insert_mensagem_selenium(msg.text, nome_contato)
@@ -241,12 +240,11 @@ class Whats:
                     msg = obj['mensagem']
                     id_mensagem = obj['id_msg']
                     print(f'{Fore.YELLOW}(manda_mensagens_front) -- Contexto: Escrevendo mensagens do contato {nome_contato}')
-                    print('ESSES DADOS CHEGARAM A MIM', iteravel[''])
                     try:
                         sleep(0.5)
                         contato_whats = self.chrome.find_element_by_xpath(f"//span[text()='{nome_contato}']")
                         contato_whats.click()
-                        input_texto = self.chrome.find_element_by_xpath("//div[contains(@class, '_3F6QL _2WovP')]//div[contains(@class, '_2S1VP copyable-text selectable-text')]")
+                        input_texto = self.chrome.find_element_by_xpath("//div[contains(@class, '_2FVVk _2UL8j')]//div[contains(@class, '_3FRCZ copyable-text selectable-text')]")
                         input_texto.click()
                         input_texto.send_keys(msg)
                         input_texto.send_keys(Keys.ENTER)
@@ -265,7 +263,7 @@ class Whats:
                     msg = obj['mensagem']
                     id_mensagem = obj['id_msg']
                     try:
-                        input_texto = self.chrome.find_element_by_xpath("//div[contains(@class, '_3F6QL _2WovP')]//div[contains(@class, '_2S1VP copyable-text selectable-text')]")
+                        input_texto = self.chrome.find_element_by_xpath("//div[@class='_2FbwG']//div[contains(@class, '_3FRCZ copyable-text selectable-text')]")
                         input_texto.click()
                         print('Passei do click')
                         input_texto.send_keys(msg)
@@ -297,7 +295,7 @@ class Whats:
         y = 200
         status = 'NOPE'
         while True:
-            self.chrome.execute_script("document.querySelector('div._1vDUw').scrollTo(0, {});".format(y))
+            self.chrome.execute_script("document.querySelector('#pane-side').scrollTo(0, {});".format(y))
             sleep(1)
             print(f'{Fore.YELLOW}(procura_elemento) -- Tentando encontrar o elemento....')
             try:
@@ -310,7 +308,7 @@ class Whats:
             if status == 'OK':
                 contato = self.chrome.find_element_by_xpath(f"//span[text()='{nome}']")
                 contato.click()
-                input_texto = self.chrome.find_element_by_xpath("//div[contains(@class, '_3F6QL _2WovP')]//div[contains(@class, '_2S1VP copyable-text selectable-text')]")
+                input_texto = self.chrome.find_element_by_xpath("//div[@class='_2FbwG']//div[contains(@class, '_3FRCZ copyable-text selectable-text')]")
                 input_texto.click()
                 input_texto.send_keys(msg)
                 input_texto.send_keys(Keys.ENTER)
@@ -318,11 +316,11 @@ class Whats:
                 self.update_mensagens(id_msg)
                 sleep(1)
                 break
-        self.chrome.execute_script("document.querySelector('div._1vDUw').scrollTo(0,1000);")
+        self.chrome.execute_script("document.querySelector('#pane-side').scrollTo(0,0);")
 
     def leia_mais(self):
         try:
-            elemento = self.chrome.find_element_by_xpath("//span[@class='_3BIvq']")
+            elemento = self.chrome.find_element_by_xpath("//span[@class='_2spA0']")
             elemento.click()
         except Exception as erro:
             print(f'{Fore.MAGENTA}Nenhum LEIA MAIS')

@@ -11,8 +11,6 @@
   <body>
     <div class="container">
         <div class="messaging">
-          <button onclick="start()">Apertar!</button>
-          <button onclick="start_msg()">Scrapping</button>
           <div class="inbox_msg">
             <div class="inbox_people">
               <div class="headind_srch">
@@ -48,13 +46,16 @@
       var contato_ativo = {contato_atual:''};
       const autor = pegaAutor();
 
-      function start(){
-        socket.emit('start')
-        socket.emit('monta_contatos')
-        
-        // socket.emit('emit_mensagens')
-        console.log('Iniciando o app!')
-      }
+      $(document).ready(()=>{
+        const iniciar = confirm('Iniciar o Scrapper?')
+        if(iniciar){
+          socket.emit('scrapping')
+          socket.emit('monta_contatos')
+          setTimeout(()=>{
+            socket.emit('emit_mensagens')
+          }, 3000);
+        };
+      });
 
 
       function pegaAutor(){
@@ -62,11 +63,6 @@
         const params = new URLSearchParams(query)
         return params.get('nome')
       };
-
-
-      function start_msg(){
-        socket.emit('emit_mensagens')
-      }
 
 
       function sleep(milliseconds) {
@@ -107,6 +103,13 @@
       }
  
 
+      function ContatoOnTop(nome, mensagem){
+        $('div.active_chat').prependTo('.inbox_chat')
+        let tag_nome = $('.chat_list').find(`h5.name:contains(${nome})`)
+        let msg = tag_nome.siblings('p.msg-display')
+        msg.html(mensagem)
+      };
+
       function EscreveMsg(){
         let contato = contato_ativo.contato_atual
         let texto = $('.write_msg').val();
@@ -125,6 +128,7 @@
         socket.emit('msg_enviada', {'contato':contato, 'mensagem':mensagem, 'hora_msg':hora_agora})
         $('.write_msg').focus()
         $('.write_msg').val('')
+        ContatoOnTop(contato, mensagem)
         
       }
 

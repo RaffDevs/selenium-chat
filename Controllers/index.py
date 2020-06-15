@@ -19,7 +19,7 @@ def init_controllers(app, db, socket, chrome):
     def app():
         return render_template('chat/template.html')
 
-    @socket.on('start')
+    @socket.on('scrapping')
     def init_scrapper():
         print(f'{Fore.CYAN}@start -- Iniciando Scraping')
         while True:
@@ -34,7 +34,6 @@ def init_controllers(app, db, socket, chrome):
                     sleep(0.2)
                     conversa.click()
                     nome_contato_whats = chrome.find_element_by_xpath(whats.xnome_contato).text
-                    contato_atual = nome_contato_whats
                     mensagens_texto = chrome.find_elements_by_xpath(whats.xnovas_mensagens)
                     mensagem_to_selenium = whats.pega_mensagem_front(nome_contato_whats)
                     if len(mensagens_texto) > 0:
@@ -42,7 +41,7 @@ def init_controllers(app, db, socket, chrome):
                             whats.leia_mais()
                             whats.insert_mensagem_selenium(msg.text, nome_contato_whats) 
                     if len(mensagem_to_selenium) > 0:
-                        whats.manda_mensagens_front(mensagem_to_selenium)
+                       whats.manda_mensagens_front(mensagem_to_selenium)
                     print(f'{Fore.GREEN}@start -- Contato: {nome_contato_whats}, Status: Todas as mensagens foram capturadas!')
                     whats.scrapping_auxiliar(nome_contato_whats)
                 print(f'{Fore.GREEN}@start -- ETAPA 1 FINALIZADA')
